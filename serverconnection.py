@@ -1,6 +1,7 @@
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
+import os 
 
 def create_server_connection(host_name, user_name, user_password):
     connection = None
@@ -24,5 +25,5 @@ def create_database(connection, query):
     except Error as err:
         print(f"Error: '{err}'")
 
-connection = create_server_connection("localhost", "root", "Fathertime55!")
+connection = create_server_connection(os.getenv('MYSQL_HOSTNAME'), os.getenv('MYSQL_USERNAME'), os.getenv('MYSQL_PASSWORD'))
 create_database(connection, "CREATE DATABASE school")
