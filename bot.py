@@ -39,6 +39,74 @@ def extract_name(args):
             extracted = extracted + " " + args.pop(0)
     return (extracted, args)
 
+def standardize_color(color):
+    color = "".join(sorted(color.upper()))
+    if color == "c" or color == "ENNO" or color == "CELLOORSS":
+        return "Colorless"    
+    if color == "W" or color == "EHITW" or color == "EHIMNOOTW":
+        return "White"
+    if color == "U" or color == "BELU" or color == "BELMNOOU":
+        return "Blue"
+    if color == "B" or color == "ABCKL" or color == "ABCKLMNOO":
+        return "Black"
+    if color == "R" or color == "DER" or color == "DEMNOOR":
+        return "Red"
+    if color == "G" or color == "EEGNR" or color == "EEGMNNOOR":
+        return "Green"
+    if color == "UW" or color == "BEEHILTUW" or color == "AIORSUZ":
+        return "Azorius"
+    if color == "BU" or color == "ABBCEKLLU" or color == "DIIMR":
+        return "Dimir"
+    if color == "BR" or color == "ABCDEKLR" or color == "ADKORS":
+        return "Rakdos"
+    if color == "GR" or color == "DEEEGNRR" or color == "GLRUU":
+        return "Gruul"
+    if color == "GW" or color == "EEEGHINRTW" or color == "AEELNSSY":
+        return "Selesnya"
+    if color == "BW" or color == "ABCEHIKLTW" or color == "HOORVZ" or color == "EIILLLQRSUV":
+        return "Orzhov"
+    if color == "RU" or color == "BDEELRU" or color == "EITZZ" or color == "AIIMPRRS":
+        return "Izzet"
+    if color == "BG" or color == "ABCEEGKLNR" or color == "AGGILOR" or color == "BEHILMOORTW":
+        return "Golgari"
+    if color == "RW" or color == "DEEHIRTW" or color == "BOORS" or color == "DEHLLOOR":
+        return "Boros"
+    if color == "GU" or color == "BEEEGLNRU" or color == "CIIMS" or color == "ADINQRUX":
+        return "Simic"
+    if color == "GUW" or color == "BEEEEGHILNRTUW" or color == "ABNT" or color == "BEKORRS":
+        return "Bant"
+    if color == "BUW" or color == "ABBCEEHIKLLTUW" or color == "EEPRS" or color == "ABCORSU":
+        return "Esper"
+    if color == "BRU" or color == "ABBCDEEKLLRU" or color == "GIIRSX" or color == "AEMORSST":
+        return "Grixis"
+    if color == "BGR" or color == "ABCDEEEGKLNRR" or color == "DJNU" or color == "EEEIRRSTV":
+        return "Jund"
+    if color == "GRW" or color == "DEEEEGHINRRTW" or color == "AANY" or color == "AABCEIRTT":
+        return "Naya"
+    if color == "BGW" or color == "ABCEEEGHIKLNRTW" or color == "AABNZ" or color == "AADHINT":
+        return "Abzan"
+    if color == "RUW" or color == "BDEEEHILRTUW" or color == "AEIJKS" or color == "AGINRRU":
+        return "Jeskai"
+    if color == "BGU" or color == "ABBCEEEGKLLNRU" or color == "AILSTU" or color == "AGHOTZ":
+        return "Sultai"
+    if color == "BRW" or color == "ABCDEEHIKLRTW" or color == "ADMRU" or color == "AAISV":
+        return "Mardu"
+    if color == "GRU" or color == "BDEEEEGLNRRU" or color == "EMRTU" or color == "AEIKRT":
+        return "Temur"
+    if color == "BRUW" or color == "ACEFIIRT" or color == "ABBCDEEEHIKLLRTUW" or color == "-EEILLORRTY" or color == "EEILLORRTY":
+        return "Yore-Tiller"
+    if color == "BGRU" or color == "ACHOS" or color == "ABBCDEEEEGKLLNRRU" or color == "-EEGILNTY" or color == "EEGILNTY":
+        return "Glint-Eye"
+    if color == "BGRW" or color == "AEGGINORSS" or color == "ABCDEEEEGHIKLNRRTW" or color == "-BDDENOORU" or color == "BDDENOORU":
+        return "Dune-Brood" 
+    if color == "GRUW" or color == "AILMRSTU" or color == "BDEEEEEGHILNRRTUW" or color == "-ADEEIKNRRT" or color == "ADEEIKNRRT":
+        return "Ink-Treader"
+    if color == "BGUW" or color == "GHORTW" or color == "ABBCEEEEGHIKLLNRTUW" or color == "-ACHIMTWW" or color == "ACHIMTWW":
+        return "Witch-Maw"  
+    if color == "BGRUW" or color == "ABINORW" or color == "-5CLOOR" or color == "5CLOOR" or color == "CEFILOORV":
+        return "WUBRG"
+    return 0
+
 def execute_query(query):
     cursor = connection.cursor()
     cursor.execute("USE " + os.getenv('DATABASE_NAME'))
@@ -143,7 +211,6 @@ async def newdeck(ctx, *args):
     else:
         deckname = extracted[0]
         args = extracted[1]
-
     if len(args) == 0:
         player = read_query("SELECT player FROM decks WHERE deck_name = \'" + deckname + "\'")
         if player:
@@ -160,9 +227,38 @@ async def newdeck(ctx, *args):
         query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', NULL, NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
         execute_query(query)
         await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
-        return  
-
-    await ctx.send(commander + " is the name of the commander.") 
-    await ctx.send(deckname + " is the name of the deck.") 
+        return
+      
+    extracted = extract_name(args)
+    if extracted[0] == 1:
+        await ctx.send("Please put the color of your deck in parentheses.")
+        return
+    elif extracted[0] == 2:
+        await ctx.send("Please close the parentheses around the color of your deck.")
+        return
+    else:
+        color = extracted[0]
+        args = extracted[1]
+    color = standardize_color(color)
+    if color == 0:
+        await ctx.send("Please choose a valid color for your deck.")
+        return
+    if len(args) == 0:
+        player = read_query("SELECT player FROM decks WHERE deck_name = \'" + deckname + "\'")
+        if player:
+            await ctx.send(deckname + " already exists (Created by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + player[0][0] + "\'")[0][0] + "). Please enter a unique name for your deck or kill your competition to take the rights for yourself!") 
+            return
+        now = datetime.now()
+        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")
+        if decksamount:
+            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + "\'"
+            execute_query(query)
+        else:
+            query = "INSERT INTO commanders VALUES (\'" + commander + "\', 0, 0, 1)"
+            execute_query(query)
+        query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+        execute_query(query)
+        await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
+        return
 
 bot.run(TOKEN)
