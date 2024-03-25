@@ -107,6 +107,13 @@ def standardize_color(color):
         return "WUBRG"
     return 0
 
+def standardize_strategies(strategies):
+    for strategy in range(len(strategies)):
+        strategies[strategy] = strategies[strategy].capitalize()
+        if strategies[strategy][-1] == ',':
+            strategies[strategy] = strategies[strategy][:-1]
+    return strategies
+
 def execute_query(query):
     cursor = connection.cursor()
     cursor.execute("USE " + os.getenv('DATABASE_NAME'))
@@ -181,9 +188,15 @@ async def newdeck(ctx, *args):
     commander = ""
     deckname = ""
     color = ""
-    strategies = ()
+    strategies = []
+    strategy = ""
+    now = datetime.now()
     playerid = str(ctx.author.id)
 
+    if not read_query("SELECT player_id FROM players WHERE player_id = \'" + playerid + "\'"):
+        await ctx.send("Please register yourself as a contender in the field of battle.")
+        return
+    
     if len(args) == 0:
         await ctx.send("Please enter at least the commander of your deck and its name.")
         return
@@ -197,6 +210,12 @@ async def newdeck(ctx, *args):
     else:
         commander = extracted[0]
         args = extracted[1]
+    decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")
+    if decksamount:
+        query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + "\'"
+    else:
+        query = "INSERT INTO commanders VALUES (\'" + commander + "\', 0, 0, 1)"
+    execute_query(query)
 
     if len(args) == 0:
         await ctx.send("Please enter at least the name of your deck.")
@@ -211,19 +230,11 @@ async def newdeck(ctx, *args):
     else:
         deckname = extracted[0]
         args = extracted[1]
+    player = read_query("SELECT player FROM decks WHERE deck_name = \'" + deckname + "\'")
+    if player:
+        await ctx.send(deckname + " already exists (Created by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + player[0][0] + "\'")[0][0] + "). Please enter a unique name for your deck or kill your competition to take the rights for yourself!") 
+        return
     if len(args) == 0:
-        player = read_query("SELECT player FROM decks WHERE deck_name = \'" + deckname + "\'")
-        if player:
-            await ctx.send(deckname + " already exists (Created by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + player[0][0] + "\'")[0][0] + "). Please enter a unique name for your deck or kill your competition to take the rights for yourself!") 
-            return
-        now = datetime.now()
-        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")
-        if decksamount:
-            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + "\'"
-            execute_query(query)
-        else:
-            query = "INSERT INTO commanders VALUES (\'" + commander + "\', 0, 0, 1)"
-            execute_query(query)
         query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', NULL, NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
         execute_query(query)
         await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
@@ -243,22 +254,37 @@ async def newdeck(ctx, *args):
     if color == 0:
         await ctx.send("Please choose a valid color for your deck.")
         return
+    decksamount = read_query("SELECT deck_numbers FROM colors WHERE color = \'" + color + "\'")
+    query = "UPDATE colors SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE color = \'" + color + "\'"
+    execute_query(query)
     if len(args) == 0:
-        player = read_query("SELECT player FROM decks WHERE deck_name = \'" + deckname + "\'")
-        if player:
-            await ctx.send(deckname + " already exists (Created by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + player[0][0] + "\'")[0][0] + "). Please enter a unique name for your deck or kill your competition to take the rights for yourself!") 
-            return
-        now = datetime.now()
-        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")
-        if decksamount:
-            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + "\'"
-            execute_query(query)
-        else:
-            query = "INSERT INTO commanders VALUES (\'" + commander + "\', 0, 0, 1)"
-            execute_query(query)
         query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
         execute_query(query)
         await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
         return
+
+    extracted = extract_name(args)
+    if extracted[0] == 1:
+        await ctx.send("Please put the strategy(s) of your deck in parentheses.")
+        return
+    elif extracted[0] == 2:
+        await ctx.send("Please close the parentheses around the strategy(s) of your deck.")
+        return
+    else:
+        strategies = extracted[0].split()
+    strategies = standardize_strategies(strategies)
+    for strat in strategies:
+        decksamount = read_query("SELECT deck_numbers FROM strategies WHERE strategy = \'" + strat + "\'")
+        if decksamount:
+            query = "UPDATE strategies SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE strategy = \'" + strat + "\'"
+        else:
+            query = "INSERT INTO strategies VALUES (\'" + strat + "\', 0, 0, 1)"
+        execute_query(query)
+    strategy = strategy + strategies[0]
+    for strategynum in range(1,len(strategies)):
+        strategy = strategy + ", " + strategies[strategynum]
+    query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+    execute_query(query)
+    await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
 
 bot.run(TOKEN)
