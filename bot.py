@@ -5,6 +5,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from mysql.connector import Error
 from datetime import datetime
+import requests
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -15,7 +16,10 @@ bot = commands.Bot(command_prefix = '/', intents = intents)
 connection = serverconnection.create_server_connection(os.getenv('MYSQL_HOSTNAME'), os.getenv('MYSQL_USERNAME'), os.getenv('MYSQL_PASSWORD'))
 
 def extract_name(args):
+    print(args)
     extracted = ""
+    if (len(args) == 1 and (len(args[0]) == 0 or len(args[0]) == 1)) or len(args) == 0:
+        return (2, args)
     for x in range(len(args)):
         if x == 0:
             if args[0][0] != "(":
@@ -25,15 +29,13 @@ def extract_name(args):
                 extracted = extracted[:-1]
                 break
         elif args[0][0] == "(":
-            print("Started another parentheses before closing")
+            print(args)
             return (2, args)
         elif args[0][-1] == ")":
             extracted = extracted + " " + args.pop(0)[:-1]
             break
-        elif x == len(args) and args[0][-1] != ")":
-            print(x)
-            print(args[0])
-            print("Didn't properly close the commander name")
+        elif len(args) == 1 and args[0][-1] != ")":
+            print(args)
             return (2, args)
         else:
             extracted = extracted + " " + args.pop(0)
@@ -41,73 +43,74 @@ def extract_name(args):
 
 def standardize_color(color):
     color = "".join(sorted(color.upper()))
-    if color == "c" or color == "ENNO" or color == "CELLOORSS":
+    if color == "c":
         return "Colorless"    
-    if color == "W" or color == "EHITW" or color == "EHIMNOOTW":
+    if color == "W":
         return "White"
-    if color == "U" or color == "BELU" or color == "BELMNOOU":
+    if color == "U":
         return "Blue"
-    if color == "B" or color == "ABCKL" or color == "ABCKLMNOO":
+    if color == "B":
         return "Black"
-    if color == "R" or color == "DER" or color == "DEMNOOR":
+    if color == "R":
         return "Red"
-    if color == "G" or color == "EEGNR" or color == "EEGMNNOOR":
+    if color == "G":
         return "Green"
-    if color == "UW" or color == "BEEHILTUW" or color == "AIORSUZ":
+    if color == "UW":
         return "Azorius"
-    if color == "BU" or color == "ABBCEKLLU" or color == "DIIMR":
+    if color == "BU":
         return "Dimir"
-    if color == "BR" or color == "ABCDEKLR" or color == "ADKORS":
+    if color == "BR":
         return "Rakdos"
-    if color == "GR" or color == "DEEEGNRR" or color == "GLRUU":
+    if color == "GR":
         return "Gruul"
-    if color == "GW" or color == "EEEGHINRTW" or color == "AEELNSSY":
+    if color == "GW":
         return "Selesnya"
-    if color == "BW" or color == "ABCEHIKLTW" or color == "HOORVZ" or color == "EIILLLQRSUV":
+    if color == "BW":
         return "Orzhov"
-    if color == "RU" or color == "BDEELRU" or color == "EITZZ" or color == "AIIMPRRS":
+    if color == "RU":
         return "Izzet"
-    if color == "BG" or color == "ABCEEGKLNR" or color == "AGGILOR" or color == "BEHILMOORTW":
+    if color == "BG":
         return "Golgari"
-    if color == "RW" or color == "DEEHIRTW" or color == "BOORS" or color == "DEHLLOOR":
+    if color == "RW":
         return "Boros"
-    if color == "GU" or color == "BEEEGLNRU" or color == "CIIMS" or color == "ADINQRUX":
+    if color == "GU":
         return "Simic"
-    if color == "GUW" or color == "BEEEEGHILNRTUW" or color == "ABNT" or color == "BEKORRS":
+    if color == "GUW":
         return "Bant"
-    if color == "BUW" or color == "ABBCEEHIKLLTUW" or color == "EEPRS" or color == "ABCORSU":
+    if color == "BUW":
         return "Esper"
-    if color == "BRU" or color == "ABBCDEEKLLRU" or color == "GIIRSX" or color == "AEMORSST":
+    if color == "BRU":
         return "Grixis"
-    if color == "BGR" or color == "ABCDEEEGKLNRR" or color == "DJNU" or color == "EEEIRRSTV":
+    if color == "BGR":
         return "Jund"
-    if color == "GRW" or color == "DEEEEGHINRRTW" or color == "AANY" or color == "AABCEIRTT":
+    if color == "GRW":
         return "Naya"
-    if color == "BGW" or color == "ABCEEEGHIKLNRTW" or color == "AABNZ" or color == "AADHINT":
+    if color == "BGW":
         return "Abzan"
-    if color == "RUW" or color == "BDEEEHILRTUW" or color == "AEIJKS" or color == "AGINRRU":
+    if color == "RUW":
         return "Jeskai"
-    if color == "BGU" or color == "ABBCEEEGKLLNRU" or color == "AILSTU" or color == "AGHOTZ":
+    if color == "BGU":
         return "Sultai"
-    if color == "BRW" or color == "ABCDEEHIKLRTW" or color == "ADMRU" or color == "AAISV":
+    if color == "BRW":
         return "Mardu"
-    if color == "GRU" or color == "BDEEEEGLNRRU" or color == "EMRTU" or color == "AEIKRT":
+    if color == "GRU":
         return "Temur"
-    if color == "BRUW" or color == "ACEFIIRT" or color == "ABBCDEEEHIKLLRTUW" or color == "-EEILLORRTY" or color == "EEILLORRTY":
+    if color == "BRUW":
         return "Yore-Tiller"
-    if color == "BGRU" or color == "ACHOS" or color == "ABBCDEEEEGKLLNRRU" or color == "-EEGILNTY" or color == "EEGILNTY":
+    if color == "BGRU":
         return "Glint-Eye"
-    if color == "BGRW" or color == "AEGGINORSS" or color == "ABCDEEEEGHIKLNRRTW" or color == "-BDDENOORU" or color == "BDDENOORU":
+    if color == "BGRW":
         return "Dune-Brood" 
-    if color == "GRUW" or color == "AILMRSTU" or color == "BDEEEEEGHILNRRTUW" or color == "-ADEEIKNRRT" or color == "ADEEIKNRRT":
+    if color == "GRUW":
         return "Ink-Treader"
-    if color == "BGUW" or color == "GHORTW" or color == "ABBCEEEEGHIKLLNRTUW" or color == "-ACHIMTWW" or color == "ACHIMTWW":
+    if color == "BGUW":
         return "Witch-Maw"  
-    if color == "BGRUW" or color == "ABINORW" or color == "-5CLOOR" or color == "5CLOOR" or color == "CEFILOORV":
+    if color == "BGRUW":
         return "WUBRG"
     return 0
 
 def standardize_strategies(strategies):
+    #Add in standard for multiple word strategies, capitalize after hyphens, do not capitalize the words that shouldn't be capitalized
     for strategy in range(len(strategies)):
         strategies[strategy] = strategies[strategy].capitalize()
         if strategies[strategy][-1] == ',':
@@ -190,6 +193,8 @@ async def newdeck(ctx, *args):
     color = ""
     strategies = []
     strategy = ""
+    partners = 0
+    apiurl = "https://api.scryfall.com/cards/named?exact="
     now = datetime.now()
     playerid = str(ctx.author.id)
 
@@ -200,6 +205,8 @@ async def newdeck(ctx, *args):
     if len(args) == 0:
         await ctx.send("Please enter at least the commander of your deck and its name.")
         return
+    
+    #Fix partner commanders with connection to scryfall
     extracted = extract_name(args)
     if extracted[0] == 1:
         await ctx.send("Please put the name of your commander in parentheses.")
@@ -210,16 +217,133 @@ async def newdeck(ctx, *args):
     else:
         commander = extracted[0]
         args = extracted[1]
-    decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")
-    if decksamount:
-        query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + "\'"
+    if commander[0] == '{':
+        partners = 1
+        commandertwo = ""
+        commanderlist = list(commander)
+        commanderlist.pop(0)
+        commander = ""
+        limit = len(commanderlist)
+        for letter in range(limit):
+            if letter == limit:
+                await ctx.send("Please close the curly braces around the name of your first partner commander.")
+                return
+            part = commanderlist.pop(0)
+            if part != '}':
+                commander = commander + part
+            else:
+                break 
+        if not commanderlist:
+            await ctx.send("Please put in your second partner commander or remove your commander from the curly braces.")
+            return
+        letter = commanderlist.pop(0)
+        if letter != "{":
+            await ctx.send("Please put your second partner commander in curly braces or remove your commander from the curly braces.")
+            return
+        limit = len(commanderlist)
+        for letter in range(limit):
+            part = commanderlist.pop(0)
+            if letter == limit and part != '}':
+                await ctx.send("Please close the curly braces around the name of your second partner commander.")
+                return
+            if part != '}':
+                commandertwo = commandertwo + part
+            else:
+                break
+        apiurlone = apiurl + commander
+        apiurltwo = apiurl + commandertwo
+        responseone = requests.get(apiurlone)
+        responseone = responseone.json()
+        responsetwo = requests.get(apiurltwo)
+        responsetwo = responsetwo.json()
+        if responseone["object"] == "error":
+            if responseone["code"] == "not_found":
+                await ctx.send("Please enter in the name of a valid magic card for your first partner commander.")
+                return
+            else:
+                await ctx.send("i'm sorry, the Scryfall server I am using to verify cards is returning an error they describe as: " + responseone["details"] + ". Please wait for the server to be back up or contact my creator for a fix to the issue.")
+                return
+        if responseone["legalities"]["commander"] != "legal":
+            await ctx.send("Please choose a legal first partner commander for your deck.")
+            return 
+        
+        if responsetwo["object"] == "error":
+            if responsetwo["code"] == "not_found":
+                await ctx.send("Please enter in the name of a valid magic card for your first partner commander.")
+                return
+            else:
+                await ctx.send("i'm sorry, the Scryfall server I am using to verify cards is returning an error they describe as: " + responsetwo["details"] + ". Please wait for the server to be back up or contact my creator for a fix to the issue.")
+                return
+        if responsetwo["legalities"]["commander"] != "legal":
+            await ctx.send("Please choose a legal first partner commander for your deck.")
+            return
+        
+        commander = responseone["name"]
+        commandertwo = responsetwo["name"]
+
+        if "Legendary Creature" not in responseone["type_line"] and "Background" not in responseone["type_line"] and ("Legendary Planeswalker" not in responseone["type_line"] or "can be your commander" not in responseone["oracle_text"]):
+            await ctx.send("Please choose a legal commander for your first partner.")
+            return
+        
+        if "Legendary Creature" not in responsetwo["type_line"] and "Background" not in responsetwo["type_line"] and ("Legendary Planeswalker" not in responsetwo["type_line"] or "can be your commander" not in responsetwo["oracle_text"]):
+            print(responsetwo["type_line"])
+            await ctx.send("Please choose a legal commander for your second partner.")
+            return
+        
+        if ("Legendary Creature" in responseone["type_line"] and ("Partner with" not in responseone["keywords"] and "Partner" not in responseone["keywords"]) and "Choose a Background" not in responseone["oracle_text"]) or ("Legendary Planeswalker" in responseone["type_line"] and ("Partner with" not in responseone["keywords"] and "Partner" not in responseone["keywords"])):
+            await ctx.send("Please choose a legal partner for your first partner.")
+            return
+
+        if ("Legendary Creature" in responsetwo["type_line"] and ("Partner with" not in responsetwo["keywords"] and "Partner" not in responsetwo["keywords"]) and "Choose a Background" not in responsetwo["oracle_text"]) or ("Legendary Planeswalker" in responsetwo["type_line"] and ("Partner with" not in responsetwo["keywords"] and "Partner" not in responsetwo["keywords"])):
+            await ctx.send("Please choose a legal partner for your second partner.")
+            return
+
+        if "Partner with" in responseone["keywords"] and "Partner with" in responsetwo["keywords"]:
+            if commander not in responsetwo["oracle_text"] or commandertwo not in responseone["oracle_text"]:
+                await ctx.send("Unfortunately the partners you chose do not partner with each other.")
+                return
+        if ("Partner with" in responseone["keywords"] and "Partner with" not in responsetwo["keywords"]) or ("Partner with" not in responseone["keywords"] and "Partner with" in responsetwo["keywords"]): 
+            await ctx.send("Unfortunately the partners you chose do not partner with each other.")
+            return
+        
+        if ("Background" in responseone["type_line"] and "Choose a Background" not in responsetwo["oracle_text"]) or ("Background" in responsetwo["type_line"] and "Choose a Background" not in responseone["oracle_text"]) or ("Choose a Background" in responseone["oracle_text"] and "Background" not in responsetwo["type_line"]) or ("Choose a Background" in responsetwo["oracle_text"] and "Background" not in responseone["type_line"]):
+            await ctx.send("A creature with the \"Choose a Background\" text must be paired with a Legendary Background Enchantment and vice versa.")
+            return
+        
+        for i in responseone["color_identity"]:
+            color = color + i
+        for i in responsetwo["color_identity"]:
+            if i not in color:
+                color = color + i
+        print(color)
+        color = standardize_color(color)
+
     else:
-        query = "INSERT INTO commanders VALUES (\'" + commander + "\', 0, 0, 1)"
-    execute_query(query)
+        apiurl = apiurl + commander
+        response = requests.get(apiurl)
+        response = response.json()
+        if response["object"] == "error":
+            if response["code"] == "not_found":
+                await ctx.send("Please enter in the name of a valid magic card for your commander.")
+                return
+            else:
+                await ctx.send("i'm sorry, the Scryfall server I am using to verify cards is returning an error they describe as: " + response["details"] + ". Please wait for the server to be back up or contact my creator for a fix to the issue.")
+                return
+        if response["legalities"]["commander"] != "legal":
+            await ctx.send("Please choose a legal commander for your deck.")
+            return     
+        if "Legendary Creature" not in response["type_line"] and ("Legendary Planeswalker" not in response["type_line"] or "can be your commander" not in response["oracle_text"]):
+            await ctx.send("Please choose a legal commander for your deck.")
+            return
+        commander = response["name"] 
+        for i in response["color_identity"]:
+            color = color + i
+        color = standardize_color(color)
 
     if len(args) == 0:
         await ctx.send("Please enter at least the name of your deck.")
         return
+    
     extracted = extract_name(args)
     if extracted[0] == 1:
         await ctx.send("Please put the name of your deck in parentheses.")
@@ -235,44 +359,54 @@ async def newdeck(ctx, *args):
         await ctx.send(deckname + " already exists (Created by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + player[0][0] + "\'")[0][0] + "). Please enter a unique name for your deck or kill your competition to take the rights for yourself!") 
         return
     if len(args) == 0:
-        query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', NULL, NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
-        execute_query(query)
-        await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
-        return
-      
-    extracted = extract_name(args)
-    if extracted[0] == 1:
-        await ctx.send("Please put the color of your deck in parentheses.")
-        return
-    elif extracted[0] == 2:
-        await ctx.send("Please close the parentheses around the color of your deck.")
-        return
+        inputs = 2
     else:
-        color = extracted[0]
-        args = extracted[1]
-    color = standardize_color(color)
-    if color == 0:
-        await ctx.send("Please choose a valid color for your deck.")
-        return
+        extracted = extract_name(args)
+        if extracted[0] == 1:
+            await ctx.send("Please put the strategy(s) of your deck in parentheses.")
+            return
+        elif extracted[0] == 2:
+            await ctx.send("Please close the parentheses around the strategy(s) of your deck.")
+            return
+        else:
+            strategies = extracted[0].split()
+        strategies = standardize_strategies(strategies)
+        strategy = strategy + strategies[0]
+        for strategynum in range(1,len(strategies)):
+            strategy = strategy + ", " + strategies[strategynum]
+        inputs = 3
+    
+    if partners == 0:
+        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")
+        if decksamount:
+            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + "\'"
+        else:
+            query = "INSERT INTO commanders VALUES (\'" + commander + "\', 0, 0, 1)"
+        execute_query(query)
+    else:
+        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + " (Partner)\'")
+        if decksamount:
+            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + " (Partner)\'"
+        else:
+            query = "INSERT INTO commanders VALUES (\'" + commander + " (Partner)\', 0, 0, 1)"
+        execute_query(query)
+        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commandertwo + " (Partner)\'")
+        if decksamount:
+            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commandertwo + " (Partner)\'"
+        else:
+            query = "INSERT INTO commanders VALUES (\'" + commandertwo + " (Partner)\', 0, 0, 1)"
+        execute_query(query)
+        decksamount = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + " and " + commandertwo + "\'")
+        if decksamount:
+            query = "UPDATE commanders SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE commander = \'" + commander + " and " + commandertwo + "\'"
+        else:
+            query = "INSERT INTO commanders VALUES (\'" + commander + " and " + commandertwo + "\', 0, 0, 1)"
+        execute_query(query)
+
     decksamount = read_query("SELECT deck_numbers FROM colors WHERE color = \'" + color + "\'")
     query = "UPDATE colors SET deck_numbers = " + str(decksamount[0][0] + 1) + " WHERE color = \'" + color + "\'"
     execute_query(query)
-    if len(args) == 0:
-        query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
-        execute_query(query)
-        await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
-        return
 
-    extracted = extract_name(args)
-    if extracted[0] == 1:
-        await ctx.send("Please put the strategy(s) of your deck in parentheses.")
-        return
-    elif extracted[0] == 2:
-        await ctx.send("Please close the parentheses around the strategy(s) of your deck.")
-        return
-    else:
-        strategies = extracted[0].split()
-    strategies = standardize_strategies(strategies)
     for strat in strategies:
         decksamount = read_query("SELECT deck_numbers FROM strategies WHERE strategy = \'" + strat + "\'")
         if decksamount:
@@ -280,11 +414,40 @@ async def newdeck(ctx, *args):
         else:
             query = "INSERT INTO strategies VALUES (\'" + strat + "\', 0, 0, 1)"
         execute_query(query)
-    strategy = strategy + strategies[0]
-    for strategynum in range(1,len(strategies)):
-        strategy = strategy + ", " + strategies[strategynum]
-    query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+    if partners == 0:
+        if inputs == 2:
+            query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+        if inputs == 3:
+            query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+    else:
+        if inputs == 2:
+            query = "INSERT INTO decks VALUES (\'" + commander + " and " + commandertwo + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+        if inputs == 3:
+            query = "INSERT INTO decks VALUES (\'" + commander + " and " + commandertwo + "\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
     execute_query(query)
-    await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")     
+    if partners == 0:
+        await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")
+    else: 
+        await ctx.send(deckname + " helmed by " + commander + " and " + commandertwo + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")
+
+@bot.command(name='changedeck')
+async def changedeck(ctx, *args):
+    return
+
+@bot.command(name='deletedeck')
+async def deletedeck(ctx, *args):
+    return
+
+@bot.command(name='startgame')
+async def gamestart(ctx, *args):
+    return
+
+@bot.command(name='cancelgame')
+async def gamecancel(ctx, *args):
+    return
+
+@bot.command(name='gameend')
+async def gameend(ctx, *args):
+    return
 
 bot.run(TOKEN)
