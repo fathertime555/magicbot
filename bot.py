@@ -111,11 +111,36 @@ def standardize_color(color):
 
 def standardize_strategies(strategies):
     #Add in standard for multiple word strategies, capitalize after hyphens, do not capitalize the words that shouldn't be capitalized
-    for strategy in range(len(strategies)):
-        strategies[strategy] = strategies[strategy].capitalize()
-        if strategies[strategy][-1] == ',':
-            strategies[strategy] = strategies[strategy][:-1]
-    return strategies
+    standardized = []
+    tempstrategy = ""
+    multiplewords = False
+    for strategy in strategies:
+        strategy.lower()
+        if strategy == 0 or (strategy == len(strategies)) - 1 or strategy != ("and" and "a" and "as" and "at" and "but" and "by" and "down" and "for" and "from" and "if" and "in" and "into" and "like" and "near" and "nor" and "of" and "off" and "on" and "once" and "onto" and "or" and "over" and "past" and "so" and "than" and "that" and "to" and "upon" and "when" and "with" and "yet"):
+            strategy = strategy.capitalize()
+        if strategy[-1] == ',':
+            strategy = strategy[:-1]
+        for letter in range(len(strategy)):
+            if strategy[letter] == "-" and letter < len(strategy):
+                strategy[letter + 1] == strategy[letter + 1].upper()
+        for letter in range(len(strategy)):
+            if strategy[-letter] == "\"" or strategy[-letter] == "\'":
+                strategy = strategy[:-letter] + "\\" + strategy[-letter:]
+        if strategy[0] == "{":
+            multiplewords = True
+            strategy = strategy[1:]
+            strategy = strategy.capitalize()
+            tempstrategy = strategy
+        elif multiplewords == False:
+            standardized.append(strategy)
+        elif multiplewords == True:
+            tempstrategy = tempstrategy + " " + strategy
+            if strategy[-1] == "}":
+                multiplewords = False
+                standardized.append(tempstrategy[:-1])
+    if multiplewords == True:
+        return 0
+    return standardized
 
 def execute_query(query):
     cursor = connection.cursor()
@@ -140,7 +165,7 @@ def read_query(query):
         print(f"Error: '{err}'")
 
 @bot.command(name='newchallenger')
-async def newplayer(ctx, *args):
+async def new_player(ctx, *args):
     if len(args) != 0:
         nickname = args[0]
         for x in args[1:]:
@@ -158,7 +183,7 @@ async def newplayer(ctx, *args):
         await ctx.send("Please enter your name so that you might be attributed the glory of your victories.") 
 
 @bot.command(name='removeself')
-async def deleteplayer(ctx):
+async def delete_player(ctx):
     playerid = str(ctx.author.id)
     existingplayer = read_query("SELECT nickname FROM players WHERE player_id = " + str(ctx.author.id))[0][0]
     if not existingplayer:
@@ -169,7 +194,7 @@ async def deleteplayer(ctx):
         await ctx.send(existingplayer + " has fled the field of battle.")
 
 @bot.command(name='changenickname')
-async def changename(ctx, *args):
+async def change_name(ctx, *args):
     if len(args) != 0:
         newname = args[0]
         for x in args[1:]:
@@ -186,7 +211,7 @@ async def changename(ctx, *args):
        await ctx.send("Please enter your new name so that you might be attributed the glory of your victories.")   
 
 @bot.command(name='newdeck')
-async def newdeck(ctx, *args):
+async def new_deck(ctx, *args):
     args = list(args)
     commander = ""
     deckname = ""
@@ -206,7 +231,6 @@ async def newdeck(ctx, *args):
         await ctx.send("Please enter at least the commander of your deck and its name.")
         return
     
-    #Fix partner commanders with connection to scryfall
     extracted = extract_name(args)
     if extracted[0] == 1:
         await ctx.send("Please put the name of your commander in parentheses.")
@@ -279,22 +303,27 @@ async def newdeck(ctx, *args):
             return
         
         commander = responseone["name"]
+        for i in range(len(commander)):
+            if commander[-i] == "\"" or commander[-i] == "\'":
+                commander = commander[:-i] + "\\" + commander[-i:]
         commandertwo = responsetwo["name"]
+        for i in range(len(commandertwo)):
+            if commandertwo[-i] == "\"" or commandertwo[-i] == "\'":
+                commandertwo = commandertwo[:-i] + "\\" + commandertwo[-i:]
 
-        if "Legendary Creature" not in responseone["type_line"] and "Background" not in responseone["type_line"] and ("Legendary Planeswalker" not in responseone["type_line"] or "can be your commander" not in responseone["oracle_text"]):
+        if ("Legendary" and "Creature") not in responseone["type_line"] and "Background" not in responseone["type_line"] and ("Legendary Planeswalker" not in responseone["type_line"] or "can be your commander" not in responseone["oracle_text"]):
             await ctx.send("Please choose a legal commander for your first partner.")
             return
         
-        if "Legendary Creature" not in responsetwo["type_line"] and "Background" not in responsetwo["type_line"] and ("Legendary Planeswalker" not in responsetwo["type_line"] or "can be your commander" not in responsetwo["oracle_text"]):
-            print(responsetwo["type_line"])
+        if ("Legendary" and  "Creature") not in responsetwo["type_line"] and "Background" not in responsetwo["type_line"] and ("Legendary Planeswalker" not in responsetwo["type_line"] or "can be your commander" not in responsetwo["oracle_text"]):
             await ctx.send("Please choose a legal commander for your second partner.")
             return
         
-        if ("Legendary Creature" in responseone["type_line"] and ("Partner with" not in responseone["keywords"] and "Partner" not in responseone["keywords"]) and "Choose a Background" not in responseone["oracle_text"]) or ("Legendary Planeswalker" in responseone["type_line"] and ("Partner with" not in responseone["keywords"] and "Partner" not in responseone["keywords"])):
+        if (("Legendary" and "Creature") in responseone["type_line"] and ("Partner with" not in responseone["keywords"] and "Partner" not in responseone["keywords"]) and "Choose a Background" not in responseone["oracle_text"]) or ("Legendary Planeswalker" in responseone["type_line"] and ("Partner with" not in responseone["keywords"] and "Partner" not in responseone["keywords"])):
             await ctx.send("Please choose a legal partner for your first partner.")
             return
 
-        if ("Legendary Creature" in responsetwo["type_line"] and ("Partner with" not in responsetwo["keywords"] and "Partner" not in responsetwo["keywords"]) and "Choose a Background" not in responsetwo["oracle_text"]) or ("Legendary Planeswalker" in responsetwo["type_line"] and ("Partner with" not in responsetwo["keywords"] and "Partner" not in responsetwo["keywords"])):
+        if (("Legendary" and "Creature") in responsetwo["type_line"] and ("Partner with" not in responsetwo["keywords"] and "Partner" not in responsetwo["keywords"]) and "Choose a Background" not in responsetwo["oracle_text"]) or ("Legendary Planeswalker" in responsetwo["type_line"] and ("Partner with" not in responsetwo["keywords"] and "Partner" not in responsetwo["keywords"])):
             await ctx.send("Please choose a legal partner for your second partner.")
             return
 
@@ -315,7 +344,6 @@ async def newdeck(ctx, *args):
         for i in responsetwo["color_identity"]:
             if i not in color:
                 color = color + i
-        print(color)
         color = standardize_color(color)
 
     else:
@@ -332,10 +360,13 @@ async def newdeck(ctx, *args):
         if response["legalities"]["commander"] != "legal":
             await ctx.send("Please choose a legal commander for your deck.")
             return     
-        if "Legendary Creature" not in response["type_line"] and ("Legendary Planeswalker" not in response["type_line"] or "can be your commander" not in response["oracle_text"]):
+        if ("Legendary" and "Creature") not in response["type_line"] and ("Legendary Planeswalker" not in response["type_line"] or "can be your commander" not in response["oracle_text"]):
             await ctx.send("Please choose a legal commander for your deck.")
             return
         commander = response["name"] 
+        for i in range(len(commander)):
+            if commander[-i] == "\"" or commander[-i] == "\'":
+                commander = commander[:-i] + "\\" + commander[-i:]
         for i in response["color_identity"]:
             color = color + i
         color = standardize_color(color)
@@ -353,6 +384,9 @@ async def newdeck(ctx, *args):
         return
     else:
         deckname = extracted[0]
+        for i in range(len(deckname)):
+            if deckname[-i] == "\"" or deckname[-i] == "\'":
+                deckname = deckname[:-i] + "\\" + deckname[-i:]
         args = extracted[1]
     player = read_query("SELECT player FROM decks WHERE deck_name = \'" + deckname + "\'")
     if player:
@@ -371,6 +405,9 @@ async def newdeck(ctx, *args):
         else:
             strategies = extracted[0].split()
         strategies = standardize_strategies(strategies)
+        if strategies == 0:
+            await ctx.send("Please close the curly braces inside of the strategy(s) of your deck.")
+            return
         strategy = strategy + strategies[0]
         for strategynum in range(1,len(strategies)):
             strategy = strategy + ", " + strategies[strategynum]
@@ -431,23 +468,23 @@ async def newdeck(ctx, *args):
         await ctx.send(deckname + " helmed by " + commander + " and " + commandertwo + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")
 
 @bot.command(name='changedeck')
-async def changedeck(ctx, *args):
+async def change_deck(ctx, *args):
     return
 
 @bot.command(name='deletedeck')
-async def deletedeck(ctx, *args):
+async def delete_deck(ctx, *args):
     return
 
 @bot.command(name='startgame')
-async def gamestart(ctx, *args):
+async def game_start(ctx, *args):
     return
 
 @bot.command(name='cancelgame')
-async def gamecancel(ctx, *args):
+async def game_cancel(ctx, *args):
     return
 
 @bot.command(name='gameend')
-async def gameend(ctx, *args):
+async def game_end(ctx, *args):
     return
 
 bot.run(TOKEN)
