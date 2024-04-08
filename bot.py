@@ -459,14 +459,14 @@ async def new_deck(ctx, *args):
         execute_query(query)
     if partners == 0:
         if inputs == 2:
-            query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+            query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0, \'" + now.strftime("%Y-%m-%d") + "\')"
         if inputs == 3:
-            query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+            query = "INSERT INTO decks VALUES (\'" + commander + "\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0, \'" + now.strftime("%Y-%m-%d") + "\')"
     else:
         if inputs == 2:
-            query = "INSERT INTO decks VALUES (\'" + commander + " and " + commandertwo + " (Partners)\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+            query = "INSERT INTO decks VALUES (\'" + commander + " and " + commandertwo + " (Partners)\', \'" + deckname + "\', \'" + color + "\', NULL, \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0, \'" + now.strftime("%Y-%m-%d") + "\')"
         if inputs == 3:
-            query = "INSERT INTO decks VALUES (\'" + commander + " and " + commandertwo + " (Partners)\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0)"
+            query = "INSERT INTO decks VALUES (\'" + commander + " and " + commandertwo + " (Partners)\', \'" + deckname + "\', \'" + color + "\', \'" + strategy + "\', \'" + str(playerid) + "\', \'" + now.strftime("%Y-%m-%d") + "\', 0, 0, 0, \'" + now.strftime("%Y-%m-%d") + "\')"
     execute_query(query)
     if partners == 0:
         await ctx.send(deckname + " helmed by " + commander + " has been deployed to the field of battle by " + read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + "!")
@@ -924,7 +924,74 @@ async def change_deck(ctx, *args):
 
 @bot.command(name='deletedeck')
 async def delete_deck(ctx, *args):
-    return
+    playerid = str(ctx.author.id)
+    message = read_query("SELECT nickname FROM players WHERE player_id = \'" + playerid + "\'")[0][0] + " has deleted their deck(s) "
+    args = list(args)
+    if not read_query("SELECT player_id FROM players WHERE player_id = \'" + playerid + "\'"):
+        await ctx.send("Please register yourself as a contender in the field of battle using /newchallenger.")
+        return
+
+    if len(args) == 0:
+        await ctx.send("Please enter the name of the deck you want to delete.")
+        return
+    
+    extracted = extract_name(args)
+    if extracted[0] == 1:
+        await ctx.send("Please put the name of the deck(s) you are deleting in parentheses.")
+        return
+    elif extracted[0] == 2:
+        await ctx.send("Please close the parentheses around the name of the deck(s) you are deleting.")
+        return
+    else:
+        decks = extracted[0]
+        args = extracted[1]
+    
+    decks = decks.split()
+    for count in range(len(decks)):
+        deck = decks[count]
+        if deck[-1] == ",":
+            deck = deck[:-1]
+        check = read_query("SELECT player FROM decks WHERE deck_name = \'" + deck + "\'")
+        if not check:
+            await ctx.send("I cannot find a deck of that name in the registry of battle.")
+            return
+        if check[0][0] != playerid:
+            await ctx.send("You are trying to edit a deck you do not command. If I might suggest, a knife to the throat is an easy way to convince " + read_query("SELECT nickname FROM players WHERE player_id = " + str(check[0][0]))[0][0] + " to make those changes for you.")
+            return
+
+        commander = read_query("SELECT commander FROM decks WHERE deck_name = \'" + deck + "\'")[0][0]
+        color = read_query("SELECT color FROM decks WHERE deck_name = \'" + deck + "\'")[0][0]
+        strategies = read_query("SELECT strategy FROM decks WHERE deck_name = \'" + deck + "\'")[0][0]
+
+        itemnum = read_query("SELECT deck_numbers FROM commanders WHERE commander = \'" + commander + "\'")[0][0]
+        if itemnum == 1:
+            execute_query("DELETE FROM commanders WHERE commander = \'" + commander + "\'")
+        else:
+            execute_query("UPDATE commanders SET deck_numbers = " + str(itemnum - 1) + " WHERE commander = \'" + commander + "\'")
+
+        itemnum = read_query("SELECT deck_numbers FROM colors WHERE color = \'" + color + "\'")[0][0]
+        execute_query("UPDATE colors SET deck_numbers = " + str(itemnum - 1) + " WHERE color = \'" + color + "\'")
+    
+        strategies = strategies.split()
+        for strategy in strategies:
+            if strategy[-1] == ",":
+                strategy = strategy[:-1]
+            itemnum = read_query("SELECT deck_numbers FROM strategies WHERE strategy = \'" + strategy + "\'")[0][0]
+            if itemnum == 1:
+                execute_query("DELETE FROM strategies WHERE strategy = \'" + strategy + "\'")
+            else:
+                execute_query("UPDATE strategies SET deck_numbers = " + str(itemnum - 1) + " WHERE strategy = \'" + strategy + "\'")
+
+        if count == len(decks) - 1:
+            message = message + "and " + deck
+        elif len(decks) > 2: 
+            message = message + deck + ", "
+        else: 
+            message = message + deck + " "
+        
+        execute_query("DELETE FROM decks WHERE deck_name = \'" + deck + "\'")
+
+    await ctx.send(message + ". Another competitor falls apart in the face of real combat.")
 
 @bot.command(name='startgame')
 async def game_start(ctx, *args):
